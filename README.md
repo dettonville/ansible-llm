@@ -135,6 +135,8 @@ addition) and bugfixes. The releases will be done on an as-needed basis when new
 ## More Information
 
 - [Dettonville Cloud Infrastructure Services](https://dettonville.org)
+- [Dettonville Utils Collection](https://github.com/dettonville/ansible-utils)
+- [Dettonville Git Inventory Collection](https://github.com/dettonville/ansible-git-inventory)
 - [Ansible Datacenter Site Example](https://github.com/lj020326/ansible-datacenter) - An actual datacenter site.yml
   repository featuring roles that demonstrate
   practical usage of the collection modules.
