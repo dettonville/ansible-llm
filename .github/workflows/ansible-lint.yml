@@ -1,0 +1,52 @@
+---
+name: Ansible Lint
+permissions:
+  contents: read
+  checks: write
+  pull-requests: read
+  issues: write
+
+on:
+  workflow_call:
+
+jobs:
+  ansible_lint:
+    name: Ansible-Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible ansible-lint distlib ansible-lint-to-junit-xml
+
+      - name: Run ansible-lint
+        run: |
+          set -o pipefail
+          ansible-lint -v -c .ansible-lint --format=pep8 | ansible-lint-to-junit-xml > ansible-lint-junit.xml
+        env:
+          ANSIBLE_LINT_OFFLINE: "false"
+          ANSIBLE_COLLECTIONS_PATH: "~/.ansible/collections:./.ansible/collections:./collections:/usr/share/ansible/collections"
+      #        with:
+      #          args: "-c .ansible-lint"
+      #          args: "inventory/ roles/ playbooks/ ."
+      #          args: "-c .ansible-lint ."
+      #          args: -v -c .ansible-lint
+
+      - name: Publish Ansible-Lint Results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: ansible-lint-junit.xml
+          check_name: Ansible-Lint Results
+          # fail job if lint violations present
+          action_fail: true
+          # default anyway, but explicit is good
+          fail_on: test failures

@@ -1,0 +1,11 @@
+## library module requirements
+bcrypt==4.3.0
+cryptography>=1.5
+distlib
+packaging
+passlib
+pyopenssl
+pyyaml
+requests
+requests-ntlm
+ruamel.yaml
