@@ -1,0 +1,7 @@
+output/
+
+## integration tests
+integration/integration_config.yml
+
+## lint cache
+.ruff_cache
