@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# Copyright: (c) 2026, Lee Johnson (ljohnson@dettonville.com)
+# MIT license (https://opensource.org/license/mit/)
 
 from __future__ import absolute_import, division, print_function
 
@@ -31,28 +33,59 @@ options:
         - Can also be supplied via OLLAMA_API_KEY environment variable.
       required: false
       type: str
+    api_auth_type:
+      description:
+        - Type of HTTP authentication header to use.
+      choices: ['bearer', 'basic']
+      default: 'bearer'
+      required: false
+      type: str
     action:
       description: Action to perform.
-      choices: [ping, list, ps, pull, create, delete, sync]
+      choices: [ping, version, list, ps, pull, create, delete, sync]
       default: 'list'
       required: false
       type: str
     model_name:
       description: Single model name string to process.
+      aliases: ['model']
       required: false
       type: str
     model_list:
       description: List of model name strings to process in batch or sync against.
+      aliases: ['models']
       required: false
       type: list
       elements: str
-    modelfile:
-      description: Path to Modelfile content for custom model creation.
+    model_file_path:
+      description: Path to model_file_path content for custom model creation.
       required: false
       type: str
+    use_system_certs:
+      description:
+        - Whether to use the truststore library to hook Python's ssl module into the native system certificate store.
+      type: bool
+      default: true
+      required: false
+    validate_certs:
+      description:
+        - Whether to validate SSL certificates for HTTPS requests.
+      type: bool
+      default: true
+      required: false
 '''
 
 EXAMPLES = r'''
+- name: Check health of Ollama endpoint
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "ping"
+
+- name: Get Ollama version
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "version"
+
 - name: List models on Ollama endpoint
   dettonville.llm.ollama_api:
     url: "https://ollama.example.com"
@@ -67,7 +100,7 @@ EXAMPLES = r'''
   dettonville.llm.ollama_api:
     url: "https://ollama.example.com"
     action: "pull"
-    model: "qwen2.5-coder:7b"
+    model_name: "qwen2.5-coder:7b"
 
 - name: Remove a model
   dettonville.llm.ollama_api:
@@ -75,6 +108,7 @@ EXAMPLES = r'''
     action: "delete"
     model: "llama3.1:8b"
     api_key: "my_secret_key"
+    api_auth_type: "bearer"
 
 - name: Sync models on Ollama endpoint to match specified list
   dettonville.llm.ollama_api:
@@ -106,25 +140,35 @@ import os
 from ansible.module_utils.basic import AnsibleModule
 
 try:
+    # noinspection PyUnusedImports
     import requests
 
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
 
+try:
+    # noinspection PyUnusedImports
+    import truststore
 
-def get_auth_headers(api_key):
+    HAS_TRUSTSTORE = True
+except ImportError:
+    HAS_TRUSTSTORE = False
+
+
+def get_auth_headers(api_key, api_auth_type):
     headers = {'Content-Type': 'application/json'}
     if not api_key:
         return headers
 
-    if ':' in api_key:
-        # user:password format
-        encoded = base64.b64encode(api_key.encode('utf-8')).decode('utf-8')
-        headers['Authorization'] = f'Basic {encoded}'
+    if api_auth_type == 'basic':
+        if ':' in api_key:
+            encoded = base64.b64encode(api_key.encode('utf-8')).decode('utf-8')
+            headers['Authorization'] = f'Basic {encoded}'
+        else:
+            headers['Authorization'] = f'Basic {api_key}'
     else:
-        # Pre-encoded token or generic key
-        headers['Authorization'] = f'Basic {api_key}'
+        headers['Authorization'] = f'Bearer {api_key}'
     return headers
 
 
@@ -132,15 +176,31 @@ def run_module():
     module_args = dict(
         url=dict(type='str', aliases=["endpoint"], required=True),
         api_key=dict(type='str', required=False, no_log=True),
+        api_auth_type=dict(
+            type='str', default='bearer', required=False, choices=['bearer', 'basic']
+        ),
         action=dict(
             type='str',
             default='list',
             required=False,
-            choices=['list', 'ping', 'ps', 'pull', 'create', 'delete', 'sync'],
+            choices=[
+                'list',
+                'ping',
+                'version',
+                'ps',
+                'pull',
+                'create',
+                'delete',
+                'sync',
+            ],
         ),
-        model_name=dict(type='str', required=False),
-        model_list=dict(type='list', elements='str', required=False),
-        modelfile=dict(type='str', required=False),
+        model_name=dict(type='str', aliases=["model"], required=False),
+        model_list=dict(
+            type='list', aliases=["models"], elements='str', required=False
+        ),
+        model_file_path=dict(type='str', required=False),
+        use_system_certs=dict(type='bool', default=True, required=False),
+        validate_certs=dict(type='bool', default=True, required=False),
     )
 
     module = AnsibleModule(
@@ -157,11 +217,23 @@ def run_module():
     base_url = module.params['url'].rstrip('/')
     # Check parameter or environment variable
     api_key = module.params['api_key'] or os.environ.get('OLLAMA_API_KEY')
+    api_auth_type = module.params['api_auth_type']
 
     action = module.params['action']
     model_name = module.params['model_name']
     model_list = module.params['model_list'] or []
-    modelfile_path = module.params['modelfile']
+    model_file_path = module.params['model_file_path']
+    use_system_certs = module.params['use_system_certs']
+    validate_certs = module.params['validate_certs']
+
+    # Configure truststore if requested and available
+    if use_system_certs:
+        if HAS_TRUSTSTORE:
+            truststore.inject_into_ssl()
+        else:
+            module.fail_json(
+                msg="The python 'truststore' library is required when 'use_system_certs=true'."
+            )
 
     # Normalize single model input into model_list if provided (except for sync where model_list is explicitly required)
     if model_name and model_name not in model_list and action != 'sync':
@@ -181,22 +253,56 @@ def run_module():
             **result,
         )
 
-    headers = get_auth_headers(api_key)
+    headers = get_auth_headers(api_key, api_auth_type)
 
     try:
         if action == 'ping':
-            resp = requests.get(f"{base_url}/api/version", headers=headers, timeout=10)
+            resp = requests.get(
+                f"{base_url}/health",
+                headers=headers,
+                verify=validate_certs,
+                timeout=10,
+            )
             if resp.status_code == 200:
+                # /health typically returns plain text or JSON depending on context, handle gracefully
+                status_data = (
+                    resp.json()
+                    if resp.headers.get('content-type', '').startswith(
+                        'application/json'
+                    )
+                    else {"status": resp.text.strip()}
+                )
                 module.exit_json(
-                    changed=False, msg="Ollama API is ready", status=resp.json()
+                    changed=False, msg="Ollama API is healthy", status=status_data
                 )
             else:
                 module.fail_json(
                     msg=f"Ollama API unhealthy, status code: {resp.status_code}"
                 )
 
-        if action == 'list':
-            resp = requests.get(f"{base_url}/api/tags", headers=headers, timeout=10)
+        elif action == 'version':
+            resp = requests.get(
+                f"{base_url}/api/version",
+                headers=headers,
+                verify=validate_certs,
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                module.exit_json(
+                    changed=False, msg="Ollama API version fetched", status=resp.json()
+                )
+            else:
+                module.fail_json(
+                    msg=f"Ollama API version check failed, status code: {resp.status_code}"
+                )
+
+        elif action == 'list':
+            resp = requests.get(
+                f"{base_url}/api/tags",
+                headers=headers,
+                verify=validate_certs,
+                timeout=10,
+            )
             if resp.status_code == 200:
                 module.exit_json(
                     changed=False, msg="Ollama API available models", status=resp.json()
@@ -211,7 +317,11 @@ def run_module():
             for model in model_list:
                 payload = {'name': model, 'stream': False}
                 resp = requests.post(
-                    f"{base_url}/api/pull", headers=headers, json=payload, timeout=300
+                    f"{base_url}/api/pull",
+                    headers=headers,
+                    json=payload,
+                    verify=validate_certs,
+                    timeout=300,
                 )
                 if resp.status_code != 200:
                     module.fail_json(msg=f"Failed to pull model '{model}': {resp.text}")
@@ -225,18 +335,22 @@ def run_module():
                     msg="Parameter 'model_name' is required for create action."
                 )
 
-            modelfile_content = ""
-            if modelfile_path:
-                with open(modelfile_path, 'r') as f:
-                    modelfile_content = f.read()
+            model_file_content = ""
+            if model_file_path:
+                with open(model_file_path, 'r') as f:
+                    model_file_content = f.read()
 
             payload = {
                 'name': model_name,
-                'modelfile': modelfile_content,
+                'model_file': model_file_content,
                 'stream': False,
             }
             resp = requests.post(
-                f"{base_url}/api/create", headers=headers, json=payload, timeout=300
+                f"{base_url}/api/create",
+                headers=headers,
+                json=payload,
+                verify=validate_certs,
+                timeout=300,
             )
             if resp.status_code != 200:
                 module.fail_json(
@@ -257,7 +371,11 @@ def run_module():
             for model in model_list:
                 payload = {'name': model}
                 resp = requests.delete(
-                    f"{base_url}/api/delete", headers=headers, json=payload, timeout=60
+                    f"{base_url}/api/delete",
+                    headers=headers,
+                    json=payload,
+                    verify=validate_certs,
+                    timeout=60,
                 )
                 if resp.status_code != 200:
                     module.fail_json(
@@ -269,7 +387,12 @@ def run_module():
 
         elif action == 'sync':
             # 1. Fetch currently available models from endpoint
-            resp = requests.get(f"{base_url}/api/tags", headers=headers, timeout=10)
+            resp = requests.get(
+                f"{base_url}/api/tags",
+                headers=headers,
+                verify=validate_certs,
+                timeout=10,
+            )
             if resp.status_code != 200:
                 module.fail_json(
                     msg=f"Failed to fetch existing models for sync, status code: {resp.status_code}"
@@ -289,6 +412,7 @@ def run_module():
                             f"{base_url}/api/delete",
                             headers=headers,
                             json={'name': model},
+                            verify=validate_certs,
                             timeout=60,
                         )
                         if del_resp.status_code != 200:
@@ -306,6 +430,7 @@ def run_module():
                             f"{base_url}/api/pull",
                             headers=headers,
                             json={'name': model, 'stream': False},
+                            verify=validate_certs,
                             timeout=300,
                         )
                         if pull_resp.status_code != 200:
@@ -318,7 +443,9 @@ def run_module():
             module.exit_json(changed=changed, results=sync_actions)
 
         elif action == 'ps':
-            resp = requests.get(f"{base_url}/api/ps", headers=headers, timeout=10)
+            resp = requests.get(
+                f"{base_url}/api/ps", headers=headers, verify=validate_certs, timeout=10
+            )
             if resp.status_code == 200:
                 module.exit_json(
                     changed=False, msg="Ollama running models", status=resp.json()

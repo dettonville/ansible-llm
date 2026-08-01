@@ -16,7 +16,7 @@ $ REPO_DIR="$( git rev-parse --show-toplevel )"
 $ cd ${REPO_DIR}
 $
 $ env ANSIBLE_NOCOLOR=True ansible-doc -t module dettonville.llm.ollama_api | tee /Users/ljohnson/repos/ansible/ansible_collections/dettonville/llm/docs/ollama_api.md
-> MODULE dettonville.llm.ollama_api (/Users/ljohnson/tmp/_mhmeOc/ansible_collections/dettonville/llm/plugins/modules/ollama_api.py)
+> MODULE dettonville.llm.ollama_api (/Users/ljohnson/tmp/_U0AxCe/ansible_collections/dettonville/llm/plugins/modules/ollama_api.py)
 
   Manages Ollama models and checks service health using standard HTTP
   API endpoints.
@@ -29,8 +29,13 @@ $ env ANSIBLE_NOCOLOR=True ansible-doc -t module dettonville.llm.ollama_api | te
 OPTIONS (= indicates it is required):
 
 - action  Action to perform.
-        choices: [ping, list, ps, pull, create, delete, sync]
+        choices: [ping, version, list, ps, pull, create, delete, sync]
         default: list
+        type: str
+
+- api_auth_type  Type of HTTP authentication header to use.
+        choices: [bearer, basic]
+        default: bearer
         type: str
 
 - api_key  Optional API token/key for authentication.
@@ -41,17 +46,20 @@ OPTIONS (= indicates it is required):
         default: null
         type: str
 
+- model_file_path  Path to model_file_path content for custom model
+                    creation.
+        default: null
+        type: str
+
 - model_list  List of model name strings to process in batch or sync
                against.
+        aliases: [models]
         default: null
         elements: str
         type: list
 
 - model_name  Single model name string to process.
-        default: null
-        type: str
-
-- modelfile  Path to Modelfile content for custom model creation.
+        aliases: [model]
         default: null
         type: str
 
@@ -59,9 +67,30 @@ OPTIONS (= indicates it is required):
         aliases: [endpoint]
         type: str
 
+- use_system_certs  Whether to use the truststore library to hook
+                     Python's ssl module into the native system
+                     certificate store.
+        default: true
+        type: bool
+
+- validate_certs  Whether to validate SSL certificates for HTTPS
+                   requests.
+        default: true
+        type: bool
+
 AUTHOR: Lee Johnson (@lj020326)
 
 EXAMPLES:
+- name: Check health of Ollama endpoint
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "ping"
+
+- name: Get Ollama version
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "version"
+
 - name: List models on Ollama endpoint
   dettonville.llm.ollama_api:
     url: "https://ollama.example.com"
@@ -76,7 +105,7 @@ EXAMPLES:
   dettonville.llm.ollama_api:
     url: "https://ollama.example.com"
     action: "pull"
-    model: "qwen2.5-coder:7b"
+    model_name: "qwen2.5-coder:7b"
 
 - name: Remove a model
   dettonville.llm.ollama_api:
@@ -84,6 +113,7 @@ EXAMPLES:
     action: "delete"
     model: "llama3.1:8b"
     api_key: "my_secret_key"
+    api_auth_type: "bearer"
 
 - name: Sync models on Ollama endpoint to match specified list
   dettonville.llm.ollama_api:

@@ -82,13 +82,11 @@ All releases will meet the following test criteria:
 * 100% success
   for [Sanity](https://docs.ansible.com/ansible/latest/dev_guide/testing/sanity/index.html#all-sanity-tests) tests as
   part of [ansible-test](https://docs.ansible.com/ansible/latest/dev_guide/testing.html#run-sanity-tests).
-* 100% success for [Integration](https://github.com/dettonville/ansible-llm/blob/main/tests/integration) tests.
 * 100% success for [ansible-lint](https://ansible.readthedocs.io/projects/lint/) allowing only false positives.
 
 ### Developer Notes
 
-- 100% code coverage is the goal, although it's not always possible.
-- Include unit and integration tests with all PRs. PRs should not decrease code coverage.
+- Include unit tests with all PRs. PRs should not decrease code coverage.
 - Filter plugins should be 1 per file, with an included DOCUMENTATION string, or reference a lookup plugin with the same
   name.
 
