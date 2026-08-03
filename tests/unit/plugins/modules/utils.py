@@ -10,12 +10,20 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, Mock, patch
 
+# noinspection PyUnresolvedReferences
 import pytest
+
+# noinspection PyUnresolvedReferences
 from ansible.module_utils import basic
+
+# noinspection PyUnresolvedReferences
 from ansible.module_utils._text import to_bytes
 
 TEST_MODULES_IMPORT_PATH = "dettonville.llm"
 MODULES_IMPORT_PATH = "ansible_collections.dettonville.llm.plugins.modules"
+MODULE_UTILS_IMPORT_PATH = (
+    "ansible_collections.dettonville.llm.plugins.module_utils"
+)
 
 
 def make_absolute(base_path, name):
@@ -23,14 +31,16 @@ def make_absolute(base_path, name):
 
 
 class AnsibleExitJson(Exception):
-    """Exception class to be raised by module.exit_json and caught by the test case"""
+    """Exception class to be raised by module.exit_json and caught by the
+    test case"""
 
     def __init__(self, kwargs):
         self.kwargs = kwargs
 
 
 class AnsibleFailJson(Exception):
-    """Exception class to be raised by module.fail_json and caught by the test case"""
+    """Exception class to be raised by module.fail_json and caught by the
+    test case"""
 
     def __init__(self, kwargs):
         self.kwargs = kwargs
@@ -104,7 +114,9 @@ def set_module_args(args):
 
 # Mock the Ansible module utils
 class MockAnsibleModule:
-    def __init__(self, argument_spec=None, supports_check_mode=False, **kwargs):
+    def __init__(
+        self, argument_spec=None, supports_check_mode=False, **kwargs
+    ):
         self.argument_spec = argument_spec
         self.supports_check_mode = supports_check_mode
         self.params = kwargs.get("params", {})
@@ -114,7 +126,9 @@ class MockAnsibleModule:
         self.exit_json = Mock()
         self.fail_json = Mock()
         self.bin_path_map = {}  # Used to mock get_bin_path
-        self.tmpdir = tempfile.mkdtemp()  # Simulate temporary directory for module
+        self.tmpdir = (
+            tempfile.mkdtemp()
+        )  # Simulate temporary directory for module
         self.add_cleanup_action = MagicMock()  # Mock cleanup action
 
     def set_params(self, **params):
@@ -151,8 +165,9 @@ class ModuleTestCase(unittest.TestCase):
     """
     Provides some infrastructure for using unittest.TestCase.
 
-    Note that unittest.TestCase is not the recommended way of writing Ansible unit tests, but there
-    still are a lot of existing tests in this form.
+    Note that unittest.TestCase is not the recommended way of writing
+    Ansible unit tests, but there still are a lot of existing tests
+    in this form.
     """
 
     def setUp(self):

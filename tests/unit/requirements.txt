@@ -12,3 +12,4 @@ pyyaml
 requests
 requests-ntlm
 ruamel.yaml
+truststore

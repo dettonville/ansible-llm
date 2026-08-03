@@ -1,4 +1,6 @@
 deploy-ansible-collection.sh shellcheck:SC2034
+plugins/modules/llama_api.py validate-modules:missing-gplv3-license
 plugins/modules/ollama_api.py validate-modules:missing-gplv3-license
+plugins/modules/vllm_api.py validate-modules:missing-gplv3-license
 regenerate-module-docs.sh shellcheck:SC2016
 regenerate-module-docs.sh shellcheck:SC2034

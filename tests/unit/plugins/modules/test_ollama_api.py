@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 from ansible_collections.dettonville.llm.plugins.modules import ollama_api
 
 # noinspection PyUnresolvedReferences
-from ansible_collections.dettonville.llm.tests.unit.plugins.modules.utils import (
-    MODULES_IMPORT_PATH,
+from ansible_collections.dettonville.llm.tests.unit.plugins.modules.utils import (  # noqa: E501
+    MODULE_UTILS_IMPORT_PATH,
     AnsibleExitJson,
     AnsibleFailJson,
     ModuleTestCase,
@@ -20,10 +20,12 @@ from ansible_collections.dettonville.llm.tests.unit.plugins.modules.utils import
 
 
 class TestOllamaApiModule(ModuleTestCase):
-    """Test cases for the ollama_api ansible module using the requests library"""
+    """Test cases for the ollama_api ansible module using the
+    module_utils LlmApiClient"""
 
-    @patch(make_absolute(MODULES_IMPORT_PATH, "ollama_api.requests.get"))
-    def test_ollama_list_models(self, mock_get):
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.truststore"))
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.get"))
+    def test_ollama_list_models(self, mock_get, mock_truststore):
         # Mock successful tag listing response
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -43,12 +45,15 @@ class TestOllamaApiModule(ModuleTestCase):
         self.assertEqual(len(result['status']['models']), 2)
         self.assertEqual(result['status']['models'][0]['name'], 'qwen2.5:7b')
         mock_get.assert_called_once()
+        mock_truststore.inject_into_ssl.assert_called_once()
 
-    @patch(make_absolute(MODULES_IMPORT_PATH, "ollama_api.requests.get"))
-    def test_ollama_ping(self, mock_get):
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.truststore"))
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.get"))
+    def test_ollama_ping(self, mock_get, mock_truststore):
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"version": "0.1.0"}
+        mock_response.headers = {'content-type': 'text/plain; charset=utf-8'}
+        mock_response.text = "OK"
         mock_get.return_value = mock_response
 
         with set_module_args(
@@ -59,12 +64,35 @@ class TestOllamaApiModule(ModuleTestCase):
 
         result = exc_info.exception.args[0]
         self.assertFalse(result['changed'])
-        self.assertEqual(result['msg'], "Ollama API is ready")
+        self.assertEqual(result['msg'], "Ollama API is healthy")
+        self.assertEqual(result['status']['status'], 'OK')
+        mock_get.assert_called_once()
+        mock_truststore.inject_into_ssl.assert_called_once()
+
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.truststore"))
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.get"))
+    def test_ollama_version(self, mock_get, mock_truststore):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"version": "0.1.0"}
+        mock_get.return_value = mock_response
+
+        with set_module_args(
+            {'endpoint': 'https://ollama.example.com', 'action': 'version'}
+        ):
+            with self.assertRaises(AnsibleExitJson) as exc_info:
+                ollama_api.run_module()
+
+        result = exc_info.exception.args[0]
+        self.assertFalse(result['changed'])
+        self.assertEqual(result['msg'], "Ollama API version fetched")
         self.assertEqual(result['status']['version'], '0.1.0')
         mock_get.assert_called_once()
+        mock_truststore.inject_into_ssl.assert_called_once()
 
-    @patch(make_absolute(MODULES_IMPORT_PATH, "ollama_api.requests.post"))
-    def test_ollama_pull_model(self, mock_post):
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.truststore"))
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.post"))
+    def test_ollama_pull_model(self, mock_post, mock_truststore):
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"status": "success"}
@@ -85,9 +113,11 @@ class TestOllamaApiModule(ModuleTestCase):
         self.assertEqual(result['results'][0]['model'], 'qwen2.5-coder:7b')
         self.assertEqual(result['results'][0]['status'], 'pulled')
         mock_post.assert_called_once()
+        mock_truststore.inject_into_ssl.assert_called_once()
 
-    @patch(make_absolute(MODULES_IMPORT_PATH, "ollama_api.requests.delete"))
-    def test_ollama_delete_model(self, mock_delete):
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.truststore"))
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.delete"))
+    def test_ollama_delete_model(self, mock_delete, mock_truststore):
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_delete.return_value = mock_response
@@ -104,9 +134,12 @@ class TestOllamaApiModule(ModuleTestCase):
 
         result = exc_info.exception.args[0]
         self.assertTrue(result['changed'])
-        self.assertEqual(result['results'][0]['model'], 'obsolete-model:latest')
+        self.assertEqual(
+            result['results'][0]['model'], 'obsolete-model:latest'
+        )
         self.assertEqual(result['results'][0]['status'], 'deleted')
         mock_delete.assert_called_once()
+        mock_truststore.inject_into_ssl.assert_called_once()
 
     def test_ollama_missing_model_parameter(self):
         with set_module_args(
@@ -122,11 +155,15 @@ class TestOllamaApiModule(ModuleTestCase):
         result = exc_info.exception.args[0]
         self.assertIn("model must be specified", result['msg'])
 
-    @patch(make_absolute(MODULES_IMPORT_PATH, "ollama_api.requests.delete"))
-    @patch(make_absolute(MODULES_IMPORT_PATH, "ollama_api.requests.post"))
-    @patch(make_absolute(MODULES_IMPORT_PATH, "ollama_api.requests.get"))
-    def test_ollama_sync_models(self, mock_get, mock_post, mock_delete):
-        # Mock initial state: server currently has 'old-model:latest' and 'keep-model:7b'
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.truststore"))
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.delete"))
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.post"))
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.get"))
+    def test_ollama_sync_models(
+        self, mock_get, mock_post, mock_delete, mock_truststore
+    ):
+        # Mock initial state:
+        # server currently has 'old-model:latest' and 'keep-model:7b'
         mock_get_response = MagicMock()
         mock_get_response.status_code = 200
         mock_get_response.json.return_value = {
@@ -158,15 +195,21 @@ class TestOllamaApiModule(ModuleTestCase):
         result = exc_info.exception.args[0]
         self.assertTrue(result['changed'])
 
-        # Verify actions taken: 'old-model:latest' deleted, 'new-model:13b' pulled
+        # Verify actions taken:
+        #   'old-model:latest' deleted, 'new-model:13b' pulled
         actions = result['results']
         self.assertEqual(len(actions), 2)
-        self.assertEqual(actions[0], {'model': 'old-model:latest', 'action': 'deleted'})
-        self.assertEqual(actions[1], {'model': 'new-model:13b', 'action': 'pulled'})
+        self.assertEqual(
+            actions[0], {'model': 'old-model:latest', 'action': 'deleted'}
+        )
+        self.assertEqual(
+            actions[1], {'model': 'new-model:13b', 'action': 'pulled'}
+        )
 
         mock_get.assert_called_once()
         mock_delete.assert_called_once()
         mock_post.assert_called_once()
+        mock_truststore.inject_into_ssl.assert_called_once()
 
     def test_ollama_sync_missing_model_list(self):
         with set_module_args(
@@ -181,6 +224,69 @@ class TestOllamaApiModule(ModuleTestCase):
 
         result = exc_info.exception.args[0]
         self.assertIn(
-            "Parameter 'model_list' must be specified when using the 'sync' action",
+            "Parameter 'model_list' must be specified when using the 'sync' "
+            "action",
             result['msg'],
         )
+
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.get"))
+    def test_ollama_auth_types(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"version": "0.1.0"}
+        mock_get.return_value = mock_response
+
+        # Test Basic Auth conversion
+        with set_module_args(
+            {
+                'endpoint': 'https://ollama.example.com',
+                'action': 'version',
+                'api_key': 'user:pass',
+                'api_auth_type': 'basic',
+            }
+        ):
+            with self.assertRaises(AnsibleExitJson):
+                ollama_api.run_module()
+
+        call_kwargs = mock_get.call_args.kwargs
+        self.assertIn('Authorization', call_kwargs['headers'])
+        self.assertTrue(
+            call_kwargs['headers']['Authorization'].startswith('Basic ')
+        )
+
+        # Test Bearer Auth
+        with set_module_args(
+            {
+                'endpoint': 'https://ollama.example.com',
+                'action': 'version',
+                'api_key': 'my-token',
+                'api_auth_type': 'bearer',
+            }
+        ):
+            with self.assertRaises(AnsibleExitJson):
+                ollama_api.run_module()
+
+        call_kwargs = mock_get.call_args.kwargs
+        self.assertEqual(
+            call_kwargs['headers']['Authorization'], 'Bearer my-token'
+        )
+
+    @patch(make_absolute(MODULE_UTILS_IMPORT_PATH, "llm_api.requests.get"))
+    def test_ollama_validate_certs_flag(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"version": "0.1.0"}
+        mock_get.return_value = mock_response
+
+        with set_module_args(
+            {
+                'endpoint': 'https://ollama.example.com',
+                'action': 'version',
+                'validate_certs': False,
+            }
+        ):
+            with self.assertRaises(AnsibleExitJson):
+                ollama_api.run_module()
+
+        call_kwargs = mock_get.call_args.kwargs
+        self.assertFalse(call_kwargs['verify'])

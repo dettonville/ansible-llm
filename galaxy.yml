@@ -17,7 +17,7 @@ tags:
   - ollama
   - ollama_api
   - tools
-version: 2026.7.1
+version: 2026.7.3
 # https://docs.ansible.com/ansible/devel/dev_guide/developing_collections_distributing.html#ignoring-files-and-folders
 manifest:
   directives:
