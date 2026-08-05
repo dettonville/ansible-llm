@@ -1,7 +1,9 @@
 ## library module requirements
+ansible-core
 bcrypt==4.3.0
 cryptography>=1.5
 distlib
+huggingface_hub
 packaging
 passlib
 pyopenssl
@@ -9,3 +11,4 @@ pyyaml
 requests
 requests-ntlm
 ruamel.yaml
+truststore
