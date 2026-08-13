@@ -12,6 +12,7 @@ def pytest_configure():
     # 1. If already resolvable (e.g., via run-tests.sh), do nothing
     try:
         import ansible_collections.dettonville.llm  # noqa: F401
+
         return
     except ImportError:
         pass

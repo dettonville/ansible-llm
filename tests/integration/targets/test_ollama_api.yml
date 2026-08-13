@@ -14,14 +14,14 @@
     - name: Test 1 | Ping Ollama API Endpoint (Health Check)
       dettonville.llm.ollama_api:
         url: "{{ test_ollama_url }}"
-        action: "ping"
-      register: test_ping_result
+        action: "health"
+      register: test_health_result
 
     - name: Assert Ping Success
       ansible.builtin.assert:
         that:
-          - test_ping_result is failed == false
-          - test_ping_result.msg is defined
+          - test_health_result is failed == false
+          - test_health_result.msg is defined
 
     - name: Test 2 | Pull Single Model using model_name parameter
       dettonville.llm.ollama_api:

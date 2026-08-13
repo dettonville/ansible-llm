@@ -14,15 +14,12 @@ export ANSIBLE_DEBUG=1
 
 ```shell
 ansible-test sanity --python 3.13  ## runs all sanity tests
-ansible-test sanity --python 3.13 export_dicts
-ansible-test sanity --python 3.13 x509_certificate_verify
-ansible-test sanity --python 3.13 tests/unit/plugins/filter/test_ldif.py
-ansible-test sanity --python 3.13 tests/unit/plugins/filter/test_redact_sensitive_values.py
-ansible-test sanity --python 3.13 plugins/action/debug_sanitized.py
+ansible-test sanity --python 3.13 ollama_api
+ansible-test sanity --python 3.13 llama_api
 ansible-test sanity --python 3.13 --test pep8
 ansible-test sanity --python ${TEST_PYTHON_VERSION} --test pylint
 ansible-test sanity --python ${TEST_PYTHON_VERSION} --test validate-modules
-ansible-test sanity -v --docker --python ${TEST_PYTHON_VERSION} export_dicts
+ansible-test sanity -v --docker --python ${TEST_PYTHON_VERSION} ollama_api
 ansible-test sanity --test pep8
 ```
 
@@ -37,7 +34,7 @@ To run automated resolve of issues using autopep8:
 ```shell
 cd ${TEST_COLLECTION_DIR}
 pip install autopep8
-autopep8 --in-place plugins/modules/test_results_logger.py
+autopep8 --in-place plugins/modules/test_ollama_api.py
 autopep8 --in-place --aggressive plugins/**/*.py
 ```
 
@@ -74,9 +71,9 @@ ansible-test sanity --python 3.13 --test pylint
 ```shell
 ansible-test sanity -vv --python 3.13 --test pep8
 ansible-test sanity --python 3.13 --python-interpreter ~/.pyenv/versions/3.13.3/bin/python3.13 --local --venv-system-site-packages
-ansible-test sanity -v --docker --python ${TEST_PYTHON_VERSION} export_dicts
+ansible-test sanity -v --docker --python ${TEST_PYTHON_VERSION} ollama_api
 ansible-test sanity -v --color --coverage --junit --docker default --python ${TEST_PYTHON_VERSION}
-ansible-test sanity -v --color --coverage --junit --docker default --python ${TEST_PYTHON_VERSION} export_dicts
+ansible-test sanity -v --color --coverage --junit --docker default --python ${TEST_PYTHON_VERSION} ollama_api
 ```
 
 To fix `no-smart-quotes` related issues

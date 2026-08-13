@@ -53,9 +53,11 @@ jobs:
       - name: Parse galaxy.yml
         id: meta
         run: |
-          NAMESPACE=$(yq '.namespace' galaxy.yml)
-          NAME=$(yq '.name' galaxy.yml)
-          VERSION=$(yq '.version' galaxy.yml)
+          # Strip surrounding quotes from yq output using tr or xargs
+          NAMESPACE=$(yq '.namespace' galaxy.yml | tr -d '"')
+          NAME=$(yq '.name' galaxy.yml | tr -d '"')
+          VERSION=$(yq '.version' galaxy.yml | tr -d '"')
+
           echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
           echo "name=$NAME" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT

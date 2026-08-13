@@ -35,11 +35,15 @@ jobs:
       contents: write
     steps:
       - name: Verify Upstream Job Results
+        env:
+          LINT_RES: ${{ inputs.lint_result }}
+          SANITY_RES: ${{ inputs.sanity_result }}
+          UNITS_RES: ${{ inputs.units_result }}
         run: >-
           python -c "assert set([
-          '${{ inputs.lint_result }}',
-          '${{ inputs.sanity_result }}',
-          '${{ inputs.units_result }}'
+          '$LINT_RES',
+          '$SANITY_RES',
+          '$UNITS_RES'
           ]) == {'success'}"
 
       - name: Checkout repository
@@ -59,20 +63,24 @@ jobs:
 
       - name: Apply Version Tag & Set Outputs
         id: meta
+        env:
+          NAMESPACE: ${{ inputs.namespace }}
+          COLLECTION_NAME: ${{ inputs.collection_name }}
+          COLLECTION_VERSION: ${{ inputs.collection_version }}
         run: |
           SHORT_HASH=$(git rev-parse --short HEAD)
-          TARBALL_NAME="${{ inputs.namespace }}-${{ inputs.collection_name }}-${{ inputs.collection_version }}.tar.gz"
-          
+          TARBALL_NAME="${NAMESPACE}-${COLLECTION_NAME}-${COLLECTION_VERSION}.tar.gz"
+
           echo "short_hash=$SHORT_HASH" >> $GITHUB_OUTPUT
           echo "release_tarball=$TARBALL_NAME" >> $GITHUB_OUTPUT
 
-          TAG_NAME="v${{ inputs.collection_version }}"
+          TAG_NAME="v${COLLECTION_VERSION}"
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "Processing tag: $TAG_NAME for commit $SHORT_HASH"
 
           # Force move tag locally if it already exists
           git tag -f "$TAG_NAME"
-          
+
           # Force push the updated tag to remote (overwriting existing tag)
           git push origin "$TAG_NAME" --force
 
@@ -87,7 +95,7 @@ jobs:
 
       #      - name: Prepare Tagged Release Asset with Commit Hash
       #        run: |
-      #          HASHED_TAR="${{ inputs.namespace }}-${{ inputs.collection_name }}-${{ inputs.collection_version }}+${{ steps.meta.outputs.short_hash }}.tar.gz"
+      #          HASHED_TAR="${NAMESPACE}-${COLLECTION_NAME}-${COLLECTION_VERSION}+${{ steps.meta.outputs.short_hash }}.tar.gz"
       #
       #          cp "${{ steps.meta.outputs.release_tarball }}" "$HASHED_TAR"
 
