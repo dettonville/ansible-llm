@@ -1,0 +1,64 @@
+---
+- name: Test Suite - Ollama API Module Validation
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    test_ollama_url: "http://localhost:11434"
+    test_single_model: "gemma2:2b"
+    test_batch_models:
+      - "llama3:8b"
+      - "mistral:7b"
+
+  tasks:
+    - name: Test 1 | Ping Ollama API Endpoint (Health Check)
+      dettonville.llm.ollama_api:
+        url: "{{ test_ollama_url }}"
+        action: "health"
+      register: test_health_result
+
+    - name: Assert Ping Success
+      ansible.builtin.assert:
+        that:
+          - test_health_result is failed == false
+          - test_health_result.msg is defined
+
+    - name: Test 2 | Pull Single Model using model_name parameter
+      dettonville.llm.ollama_api:
+        url: "{{ test_ollama_url }}"
+        action: "pull"
+        model_name: "{{ test_single_model }}"
+      register: test_single_pull_result
+
+    - name: Assert Single Model Pull Success
+      ansible.builtin.assert:
+        that:
+          - test_single_pull_result.changed == true
+          - test_single_pull_result.results | length == 1
+
+    - name: Test 3 | Pull Multiple Models in Batch using model_list parameter
+      dettonville.llm.ollama_api:
+        url: "{{ test_ollama_url }}"
+        action: "pull"
+        model_list: "{{ test_batch_models }}"
+      register: test_batch_pull_result
+
+    - name: Assert Batch Model Pull Success
+      ansible.builtin.assert:
+        that:
+          - test_batch_pull_result.changed == true
+          - test_batch_pull_result.results | length == 2
+
+    - name: Test 4 | Delete Models in Batch using model_list parameter
+      dettonville.llm.ollama_api:
+        url: "{{ test_ollama_url }}"
+        action: "delete"
+        model_list:
+          - "{{ test_single_model }}"
+      register: test_batch_delete_result
+
+    - name: Assert Batch Delete Success
+      ansible.builtin.assert:
+        that:
+          - test_batch_delete_result.changed == true
+          - test_batch_delete_result.results | length == 1

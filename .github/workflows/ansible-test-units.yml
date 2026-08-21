@@ -1,0 +1,129 @@
+---
+name: Ansible Test Units
+permissions:
+  contents: read
+  checks: write
+
+on:
+  workflow_call:
+    inputs:
+      collection_path:
+        type: string
+        required: true
+
+env:
+  COLLECTION_PATH: ${{ inputs.collection_path }}
+
+jobs:
+  ansible_test_units:
+    name: Perform unit testing
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Ansible Support Matrix
+        # https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix
+        versions:
+          # Testing all ansible and python versions is impractical. Only test the newest and
+          # oldest versions of each that we support
+          - { python: "3.14", ansible: "stable-2.21" }
+          - { python: "3.13", ansible: "stable-2.20" }
+          # - { python: "3.13", ansible: "stable-2.19" }
+          # - { python: "3.11", ansible: "stable-2.19" }
+          - { python: "3.12", ansible: "stable-2.16" }
+          - { python: "3.10", ansible: "stable-2.16" }
+          # - { python: "3.13", ansible: devel }
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --user \
+            cryptography>=43.0.3 \
+            pyOpenSSL>=24.0.0 \
+            coverage>=7.0.0 \
+            pytest-xdist>=3.0.0
+
+      - name: Determine Test Dependencies
+        id: deps
+        run: |
+          if [ -f "requirements.yml" ]; then
+            echo "found_reqs=true" >> "$GITHUB_OUTPUT"
+            echo "deps_file=requirements.yml" >> "$GITHUB_OUTPUT"
+          elif [ -f "tests/requirements.yml" ]; then
+            echo "found_reqs=true" >> "$GITHUB_OUTPUT"
+            echo "deps_file=tests/requirements.yml" >> "$GITHUB_OUTPUT"
+          else
+            echo "found_reqs=false" >> "$GITHUB_OUTPUT"
+            echo "deps_file=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: >-
+          Perform unit testing against
+          Ansible version ${{ matrix.versions.ansible }}
+          under Python ${{ matrix.versions.python }}
+        id: ansible_test
+        #        uses: ansible-community/ansible-test-gh-action@release/v1
+        uses: dettonville/ansible-test-gh-action@feature/add-test-deps-file
+        with:
+          ansible-core-version: ${{ matrix.versions.ansible }}
+          target-python-version: ${{ matrix.versions.python }}
+          testing-type: units
+          test-deps-file: ${{ steps.deps.outputs.deps_file }}
+          pull-request-change-detection: false
+          collection-root: .
+          pre-test-cmd: >-
+            ansible-test --version
+
+      - name: Debug - List test output files
+        run: |
+          echo "Listing files in ${{ env.COLLECTION_PATH }}/tests/output/"
+          find ${{ env.COLLECTION_PATH }}/tests/output/ -type f || \
+          echo "No files found in ${{ env.COLLECTION_PATH }}/tests/output/"
+          echo "ansible-test-gh-action outputs:"
+          echo "test-result-files: ${{ steps.ansible_test.outputs.test-result-files }}"
+          echo "coverage-report-files: ${{ steps.ansible_test.outputs.coverage-report-files }}"
+
+      - name: Archive Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.versions.ansible }}-python-${{ matrix.versions.python }}
+          path: |
+            ${{ env.COLLECTION_PATH }}/tests/output/junit/
+            ${{ env.COLLECTION_PATH }}/tests/output/coverage/
+            ${{ env.COLLECTION_PATH }}/tests/output/reports/
+          retention-days: 7
+
+      - name: Publish Unit Test Results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: |
+            ${{ env.COLLECTION_PATH }}/tests/output/junit/*.xml
+
+  #      # Optional: Upload coverage to Codecov
+  #      - name: Upload coverage to Codecov
+  #        if: always()
+  #        uses: codecov/codecov-action@v4
+  #        with:
+  #          files: |
+  #            ${{ env.COLLECTION_PATH }}/tests/output/reports/coverage=units.xml
+  #            ${{ env.COLLECTION_PATH }}/tests/output/reports/coverage=units=python-${{ matrix.versions.python }}.xml
+  #          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # This job does nothing and is only used for the branch protection
+  # or multi-stage CI jobs, like making sure that all tests pass before
+  # a publishing job is started.
+  unit-check:
+    if: always()
+    needs:
+      - ansible_test_units
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
