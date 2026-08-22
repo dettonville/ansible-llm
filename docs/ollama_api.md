@@ -1,3 +1,107 @@
+## module > ollama_api
+
+Manage Ollama models and query states via API
+
+- [Synopsis](#synopsis)
+- [Parameters](#parameters)
+- [Examples](#examples)
+- [Return Values](#return-values)
+- [CLI Reproducibility & Environment](#cli-reproducibility--environment)
+
+## Synopsis
+
+- Manages Ollama models and checks service health using standard HTTP API endpoints.
+- Provides capabilities to list available models, check running models in VRAM (ps), pull (download), create custom models, remove, and sync models against a target Ollama endpoint.
+- Supports API key authentication via parameter or OLLAMA_API_KEY environment variable.
+
+## Parameters
+
+| Parameter | Choices / Defaults | Comments |
+| :--- | :--- | :--- |
+| **action**<br>`str` | Default: `"list"`<br>Choices:<br>- `health`<br>- `version`<br>- `list`<br>- `ps`<br>- `pull`<br>- `create`<br>- `delete`<br>- `sync` | Action to perform. |
+| **api_auth_type**<br>`str` | Default: `"bearer"`<br>Choices:<br>- `bearer`<br>- `basic` | Type of HTTP authentication header to use. |
+| **api_key**<br>`str` |  | Optional API token/key for authentication.<br>API key or user:password basic auth credential for the Ollama endpoint.<br>Can also be supplied via OLLAMA_API_KEY environment variable. |
+| **model_file_path**<br>`str` |  | Path to local Modelfile content for custom model creation. |
+| **model_list**<br>`list / elements=str` |  | List of model name strings to process in batch or sync against.<br><br>*aliases:* `models` |
+| **model_name**<br>`str` |  | Single model name string to process or target for custom creation.<br><br>*aliases:* `model` |
+| **url**<br>`str / **required**` |  | Base URL of the Ollama API service.<br><br>*aliases:* `endpoint` |
+| **use_system_certs**<br>`bool` | Default: `true` | Whether to use the truststore library to hook Python's ssl module into the native system certificate store. |
+| **validate_certs**<br>`bool` | Default: `true` | Whether to validate SSL certificates for HTTPS requests. |
+
+## Examples
+
+```yaml
+- name: Check health of Ollama endpoint
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "health"
+
+- name: Get Ollama version
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "version"
+
+- name: List models on Ollama endpoint
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "list"
+
+- name: Check running models loaded in VRAM
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "ps"
+
+- name: Pull a model with explicit API key authentication
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "pull"
+    model_name: "qwen2.5-coder:7b"
+    api_key: "{{ lookup('env', 'OLLAMA_API_KEY') }}"
+    api_auth_type: "bearer"
+
+- name: Create a custom model from a local model file
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "create"
+    model_name: "my-custom-model:latest"
+    model_file_path: "/path/to/Modelfile"
+
+- name: Remove an obsolete model using basic authentication
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "delete"
+    model: "llama3.1:8b"
+    api_key: "admin:secretpassword"
+    api_auth_type: "basic"
+
+- name: Pull a model using basic base64 encoded authentication
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "pull"
+    model_name: "qwen2.5-coder:7b"
+    api_key: "e1NTSEF9cGFzc3dvcmQ="   # explicit base64
+    api_auth_type: "basic"
+
+- name: Sync models on Ollama endpoint to match specified list exactly
+  dettonville.llm.ollama_api:
+    url: "https://ollama.example.com"
+    action: "sync"
+    model_list:
+      - "qwen2.5-coder:7b"
+      - "llama3.1:8b"
+```
+
+## Return Values
+
+| Key | Returned | Description |
+| :--- | :--- | :--- |
+| **base_url**<br>`(str)` | always | The target endpoint URL used. |
+| **changed**<br>`(bool)` | always | Whether any modification or state change occurred. |
+| **result**<br>`(raw)` | always | The JSON response dictionary or message returned from the Ollama API or action. |
+
+## CLI Reproducibility & Environment
+
+To view this module documentation directly in your terminal or replicate the output:
 
 ```shell
 $ ansible --version
@@ -5,15 +109,15 @@ ansible [core 2.21.2]
   config file = None
   configured module search path = ['/Users/ljohnson/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
   ansible python module location = /Users/ljohnson/.pyenv/versions/3.13.5/lib/python3.13/site-packages/ansible
-  ansible collection location = /Users/ljohnson/tmp/_eGKuJl:/Users/ljohnson/repos/ansible/ansible_collections/dettonville/llm
+  ansible collection location = /var/folders/w6/3rcdpp211v5cxml6vg45ww3r0000gn/T/ansible_doc_lk91a344
   executable location = /Users/ljohnson/.pyenv/versions/3.13.5/bin/ansible
   python version = 3.13.5 (main, Sep 18 2025, 19:11:35) [Clang 16.0.0 (clang-1600.0.26.6)] (/Users/ljohnson/.pyenv/versions/3.13.5/bin/python3.13)
   jinja version = 3.1.6
   pyyaml version = 6.0.3 (with libyaml v0.2.5)
 $ REPO_DIR="$( git rev-parse --show-toplevel )"
-$ cd ${REPO_DIR}
+cd ${REPO_DIR}
 $ env ANSIBLE_NOCOLOR=True ansible-doc -t module dettonville.llm.ollama_api | tee /Users/ljohnson/repos/ansible/ansible_collections/dettonville/llm/docs/ollama_api.md
-> MODULE dettonville.llm.ollama_api (/Users/ljohnson/tmp/_eGKuJl/ansible_collections/dettonville/llm/plugins/modules/ollama_api.py)
+> MODULE dettonville.llm.ollama_api (/var/folders/w6/3rcdpp211v5cxml6vg45ww3r0000gn/T/ansible_doc_lk91a344/ansible_collections/dettonville/llm/plugins/modules/ollama_api.py)
 
   Manages Ollama models and checks service health using standard HTTP
   API endpoints.
@@ -152,5 +256,4 @@ RETURN VALUES:
            Ollama API or action.
         returned: always
         type: raw
-
 ```
