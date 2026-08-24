@@ -8,6 +8,7 @@ ci:
     - local-ansible-validate-modules
     - local-ansible-test-units
     - local-ansible-test-sanity
+    - update-plugin-docs
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -125,7 +126,10 @@ repos:
       - id: update-plugin-docs
         name: update ansible plugin documentation
         files: ^(plugins/|galaxy\.yml)
-        entry: bash -c 'if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then ./update-plugin-docs.sh; fi'
-        language: system
+        entry: python scripts/update_plugin_docs.py
+        language: python
+        additional_dependencies:
+          - ansible-core>=2.16.0
+          - pyyaml
         pass_filenames: false
         always_run: false

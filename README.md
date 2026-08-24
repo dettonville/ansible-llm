@@ -6,6 +6,7 @@
 
 * [Summary](#summary)
 * [CI Status](#ci-status)
+* [Documentation](#documentation)
 * [Requirements](#requirements)
 * [Ansible Version Compatibility](#ansible-version-compatibility)
 * [Included Content](#included-content)
@@ -28,6 +29,14 @@ The Ansible `dettonville.llm` collection includes plugins and modules designed t
 [![🧪 GitHub Actions CI/CD workflow tests badge]][GHA workflow runs list]
 [![pre-commit.ci status badge]][pre-commit.ci results page]
 
+## Documentation
+
+The compiled HTML documentation for this collection is available at:
+
+**[https://dettonville.github.io/ansible-llm/](https://dettonville.github.io/ansible-llm/)**
+
+---
+
 ## Requirements
 
 The host running the tasks must have the python requirements described in [requirements.txt](https://github.com/dettonville/ansible-llm/blob/main/requirements.txt). Once the collection is installed, you can install them into a python environment using pip: `pip install -r requirements.txt`
@@ -47,12 +56,12 @@ Plugins and modules within a collection may be tested with only specific Ansible
 
 ### Modules
 
-| Documentation                                                                           | Source code                                                                                           | Description                                                                                                                                           |
-|-----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [hf_download](https://github.com/dettonville/ansible-llm/blob/main/docs/hf_download.md) | [hf_download.py](https://github.com/dettonville/ansible-llm/blob/main/plugins/modules/hf_download.py) | Downloads models, datasets, or specific files from Hugging Face Hub using the huggingface_hub library.                                                |
-| [llama_api](https://github.com/dettonville/ansible-llm/blob/main/docs/llama_api.md)     | [llama_api.py](https://github.com/dettonville/ansible-llm/blob/main/plugins/modules/llama_api.py)     | Checks health, models, server properties, and slots from a specified llama.cpp server endpoint.                                                       |
-| [ollama_api](https://github.com/dettonville/ansible-llm/blob/main/docs/ollama_api.md)   | [ollama_api.py](https://github.com/dettonville/ansible-llm/blob/main/plugins/modules/ollama_api.py)   | Provides capabilities to list available models, check running models (ps), pull (download), sync, and remove models from a specified Ollama endpoint. |
-| [vllm_api](https://github.com/dettonville/ansible-llm/blob/main/docs/vllm_api.md)       | [vllm_api.py](https://github.com/dettonville/ansible-llm/blob/main/plugins/modules/vllm_api.py)       | Checks health, models, version, and metrics from a specified vLLM server endpoint.                                                                    |
+| Documentation                                                                    | Source code                                                                                           | Description                                                                                                                                           |
+|----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [hf_download](https://dettonville.github.io/ansible-llm/hf_download_module.html) | [hf_download.py](https://github.com/dettonville/ansible-llm/blob/main/plugins/modules/hf_download.py) | Downloads models, datasets, or specific files from Hugging Face Hub using the huggingface_hub library.                                                |
+| [llama_api](https://dettonville.github.io/ansible-llm/llama_api_module.html)     | [llama_api.py](https://github.com/dettonville/ansible-llm/blob/main/plugins/modules/llama_api.py)     | Checks health, models, server properties, and slots from a specified llama.cpp server endpoint.                                                       |
+| [ollama_api](https://dettonville.github.io/ansible-llm/ollama_api_module.html)   | [ollama_api.py](https://github.com/dettonville/ansible-llm/blob/main/plugins/modules/ollama_api.py)   | Provides capabilities to list available models, check running models (ps), pull (download), sync, and remove models from a specified Ollama endpoint. |
+| [vllm_api](https://dettonville.github.io/ansible-llm/vllm_api_module.html)       | [vllm_api.py](https://github.com/dettonville/ansible-llm/blob/main/plugins/modules/vllm_api.py)       | Checks health, models, version, and metrics from a specified vLLM server endpoint.                                                                    |
 
 <!--end collection content-->
 

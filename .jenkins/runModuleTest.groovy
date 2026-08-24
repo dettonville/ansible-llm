@@ -1,24 +1,16 @@
 
-import jenkins.branch.*
-import jenkins.model.Jenkins
-
 import com.dettonville.pipeline.utils.logging.LogLevel
 import com.dettonville.pipeline.utils.logging.Logger
-
-import com.dettonville.pipeline.utils.JsonUtils
 
 Logger log = new Logger(this)
 
 Map config = [:]
 
 List testTags = [
-    "export_dicts",
-    "git_pacp",
-    "remove_dict_keys",
-    "remove_sensitive_keys",
-    "sort_dict_list",
-    "test_results_logger",
-    "to_markdown",
+    "ollama_api",
+    "llama_api",
+    "vllm_api",
+    "hf_download",
     "all"
 ]
 
