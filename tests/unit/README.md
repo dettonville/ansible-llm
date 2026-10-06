@@ -28,11 +28,14 @@ $ ansible-test units --python 3.13 -v plugins/modules/test_ollama_api.py::test_o
 ```Python
 # Force module logging to console during tests
 import logging
-logging.getLogger('ansible_collections.dettonville.llm.plugins.modules.ollama_api').setLevel(logging.DEBUG)
+
+logging.getLogger(
+    'ansible_collections.dettonville.llm.plugins.modules.ollama_api'
+).setLevel(logging.DEBUG)
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler()],
 )
 ```
 This will make all log.debug, log.info, log.warning, log.error calls from the module appear in the pytest console output when the test runs.
@@ -44,7 +47,7 @@ In the test, explicitly set:
 params = {
     "content": raw_pem,
     "validate_expired": True,
-    "logging_level": "DEBUG",          # ← changed to DEBUG
+    "logging_level": "DEBUG",  # ← changed to DEBUG
 }
 ```
 This ensures maximum verbosity from the module itself.
