@@ -68,7 +68,7 @@ def _run_module_with_args(args):
     with patch(
         "ansible.module_utils.basic.AnsibleModule",
         side_effect=lambda **kwargs: MockAnsibleModule(params=args, **kwargs),
-    ) as MockModule:
+    ):
         try:
             run_module(args)
         except AnsibleExitJson as e:
@@ -100,6 +100,7 @@ def set_module_args(args):
         args["_ansible_keep_remote_files"] = False
 
     try:
+        # noinspection PyPackageRequirements
         from ansible.module_utils.testing import patch_module_args
     except ImportError:
         # Fallback for older ansible-core versions
@@ -170,6 +171,7 @@ class ModuleTestCase(unittest.TestCase):
     in this form.
     """
 
+    # noinspection PyPep8Naming
     def setUp(self):
         self.mock_module = patch.multiple(
             basic.AnsibleModule, exit_json=exit_json, fail_json=fail_json

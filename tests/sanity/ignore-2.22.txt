@@ -1,0 +1,4 @@
+plugins/modules/hf_download.py validate-modules:missing-gplv3-license
+plugins/modules/llama_api.py validate-modules:missing-gplv3-license
+plugins/modules/ollama_api.py validate-modules:missing-gplv3-license
+plugins/modules/vllm_api.py validate-modules:missing-gplv3-license

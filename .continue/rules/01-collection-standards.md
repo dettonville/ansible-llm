@@ -1,5 +1,5 @@
 ---
-name: Ansible Collection Standards
+name: Ansible Collection Standards (dettonville.llm)
 globs: ["**/*.{py,yml,yaml}"]
 alwaysApply: true
 description: Core standards for dettonville.llm collection
